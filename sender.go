@@ -1,20 +1,18 @@
 package main
-
 import (
     "os"
     "log"
     "fmt"
     "strconv"
     "bytes"
+    "time"
 )
 
-const DATA_READ       = "DRD"
-const DATA            = "DAT"
-const DATA_SEND_READY = "DSR"
+const TRANSMIT string = "TX"
+const DATA     string = "DATA"
 
 func main() {
-
-    //convert bitstream into bits
+    os.Remove(TRANSMIT)
     inputString := "test"
     var messageString string
     var buffer bytes.Buffer
@@ -24,38 +22,37 @@ func main() {
     }
     messageString = buffer.String()
 
-    //Display data to user
-    fmt.Println(messageString)
-    
-    //remove DATA
-    os.Remove(DATA)
-    
-    //loop through the bitstream
-    for i := 0; i < len(messageString); i++ {
-        //If bit is 1, 
-        if string(messageString[i]) == "1" {
-            //touch DATA
-            os.Create(DATA)
-        } else if string(messageString[i]) == "0" {
-        //else remove DATA
-            os.Remove(DATA)
-        } else {
-            l := log.New(os.Stderr, "", 0)
-            l.Println("Character is not 1 or 0.  Something went horribly wrong.")
-            os.Exit(1)
-        }
+    os.Create(TRANSMIT)
 
-        //touch DATA_SEND_READY
-        os.Create(DATA_SEND_READY)
-        //loop
+    for i := 0; i < len(messageString); i++ {
         for {
-            //if DATA_READ exists,
-            if _, err := os.Stat(DATA_READ); err != nil {
-                break
+            t := time.Now()
+            if t.Second() % 2 == 1 { //Write on the odd seconds
+                //If bit is 1, 
+                if string(messageString[i]) == "1" {
+                    //touch DATA
+                    os.Create(DATA)
+                    fmt.Println("Create DATA")
+                    fmt.Println("Sending: 1")
+                    time.Sleep(1 * time.Second)
+                    break
+                } else if string(messageString[i]) == "0" {
+                //else remove DATA
+                    os.Remove(DATA)
+                    fmt.Println("Remove DATA")
+                    fmt.Println("Sending: 0")
+                    time.Sleep(1 * time.Second)
+                    break
+                } else {
+                    l := log.New(os.Stderr, "", 0)
+                    l.Println("Character is not 1 or 0.  Something went horribly wrong.")
+                    os.Exit(1)
+                }
+            } else { //Sleep on the even seconds
+                continue
             }
         }
-        os.Remove(DATA_SEND_READY)
     }
-
-    
+    os.Remove(TRANSMIT)
+    os.Remove(DATA)
 }

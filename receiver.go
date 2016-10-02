@@ -1,57 +1,44 @@
 package main
-
 import (
+    "fmt"
+    "time"
     "os"
     "bytes"
-    "fmt"
 )
 
-const DATA_READ       = "DRD"
-const DATA            = "DAT"
-const DATA_SEND_READY = "DSR"
+const TRANSMIT string = "TX"
+const DATA     string = "DATA"
 
 func main() {
     var bitRead string
     var buffer bytes.Buffer
 
-    //Remove DATA_READ
-    os.Remove(DATA_READ)
-    //Loop
+    //check for Transmit flag
     for {
-        //loop
-        for {
-            //If DATA_SEND_READY exists
-            if _, err := os.Stat(DATA_SEND_READY); err != nil {
-                break
-            }
+        if _, err := os.Stat(TRANSMIT); err == nil {
+            break
         }
-        //Read data "If DATA exists, bit is 1
-        if _, err := os.Stat(DATA); err != nil {
-            bitRead = "1"
-        } else {
-        //else, bit is zero
-            bitRead = "0"
-        }
+    }
 
-        //Touch DATA_READ
-        os.Create(DATA_READ)
-        //loop
-        for {
-            //if DATA_SEND_READY exists
-            if _, err := os.Stat(DATA_SEND_READY); err != nil {
-                continue
+    for {
+        t := time.Now()
+        if t.Second() % 2 == 0 { //Read on the read seconds
+            //If bit is 1, 
+            if _, err := os.Stat(DATA); os.IsNotExist(err) {
+                bitRead = "0"
             } else {
+                bitRead = "1"
+            }
+
+            time.Sleep(1 * time.Second)
+            if _, err :=os.Stat(TRANSMIT); os.IsNotExist(err) {
+                fmt.Println("Transmission stopped")
                 break
             }
+            buffer.WriteString(bitRead)
+            //print the bit that was received
+            fmt.Println("Bit Received:", bitRead)
+            fmt.Println("Cumulative Message:", buffer.String())
         }
-
-        //Write bit to bitstream
-        buffer.WriteString(bitRead)
-        //print the bit that was received
-        fmt.Println("Bit Received:", bitRead)
-        fmt.Println("Cumulative Message:", buffer.String())
-        
-        //Remove DATA_READ
-        os.Remove(DATA_READ)
     }
 }
